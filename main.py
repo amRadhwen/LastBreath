@@ -15,6 +15,10 @@ folder_to_encrypt = "encryptme"
 
 
 # Example usage (class Encryptor that combines symmetric and asymmetric encryption): 
-encryptor = Encryptor('public_key.pem', 'private_key.pem')
+public_key_path = 'public_key.pem'
+private_key_path = 'private_key.pem'
+
+encryptor = Encryptor(public_key_path, private_key_path)
 encryptor.encrypt_folder(folder_to_encrypt)
-#encryptor.decrypt_folder('input_folder')
+#encryptor.decrypt_folder(folder_to_encrypt)
+

@@ -5,18 +5,20 @@ from Crypto.Random import get_random_bytes
 
 class Encryptor:
     def __init__(self, public_key_path, private_key_path):
+        self.public_key_path = public_key_path
+        self.private_key_path = private_key_path
         self.public_key = self.load_public_key(public_key_path)
         self.private_key = self.load_private_key(private_key_path)
         self.symmetric_key = None
 
     def generate_public_key(self, key_size=2048):
         key = RSA.generate(key_size)
-        with open('public_key.pem', 'wb') as f:
+        with open(self.public_key_path, 'wb') as f:
             f.write(key.publickey().export_key())
 
     def generate_private_key(self, key_size=2048):
         key = RSA.generate(key_size)
-        with open('private_key.pem', 'wb') as f:
+        with open(self.private_key_path, 'wb') as f:
             f.write(key.export_key())
 
     def load_public_key(self, public_key_path):
@@ -79,6 +81,9 @@ class Encryptor:
                 self.decrypt_file(input_file_path)
 
 # Example usage:
-encryptor = Encryptor('public_key.pem', 'private_key.pem')
+public_key_path = 'public_key.pem'
+private_key_path = 'private_key.pem'
+
+encryptor = Encryptor(public_key_path, private_key_path)
 encryptor.encrypt_folder('input_folder')
 encryptor.decrypt_folder('input_folder')
