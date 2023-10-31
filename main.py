@@ -1,16 +1,13 @@
-from Crypto.Random import get_random_bytes
+from FileEncryptor import FileEncryptor
 
-import FileEncryptor
+# Usage example:
+password = "thisismysecretpassword"
+salt = b'thisismysecretsalt'  # You can specify your own salt or leave it empty for a random salt
+encryptor = FileEncryptor(password, salt)
+folder_to_encrypt = "/encryptme"
 
-if __name__ == "__main__":
-    key = get_random_bytes(32)  # 256-bit key
-    encryptor = FileEncryptor(key)
+# To encrypt files in the folder
+encryptor.encrypt_folder(folder_to_encrypt)
 
-    # Encrypt a single file
-    input_file = 'encryptme.tct'
-    output_file = 'encrypted_file.enc'
-    encryptor.encrypt_file(input_file, output_file)
-
-    # Encrypt a folder
-    input_folder = 'encryptme'
-    encryptor.encrypt_folder(input_folder)
+# To decrypt files in the folder
+# encryptor.decrypt_folder(folder_to_encrypt)
