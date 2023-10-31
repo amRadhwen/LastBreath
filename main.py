@@ -2,9 +2,9 @@ from FileEncryptor import FileEncryptor
 from Enctryptor import Encryptor
 
 # Usage example:
-password = "thisismysecretpassword"
-salt = b'thisismysecretsalt'  # You can specify your own salt or leave it empty for a random salt
-encryptor = FileEncryptor(password, salt)
+#password = "thisismysecretpassword"
+#salt = b'thisismysecretsalt'  # You can specify your own salt or leave it empty for a random salt
+#encryptor = FileEncryptor(password, salt)
 folder_to_encrypt = "encryptme"
 
 # To encrypt files in the folder
