@@ -13,6 +13,7 @@ from Enctryptor import Encryptor
 # To decrypt files in the folder
 #encryptor.decrypt_folder(folder_to_encrypt)
 
+
 if __name__ == "__main__":
     private_key_path = 'private_key.pem'
     public_key_path = 'public_key.pem'
@@ -21,5 +22,6 @@ if __name__ == "__main__":
     encryptor = Encryptor(private_key_path, public_key_path)
     encryptor.encrypt_files_in_folder(folder_path)
     # To decrypt, use: encryptor.decrypt_files_in_folder(folder_path)
+
 
 
