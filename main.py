@@ -20,8 +20,7 @@ if __name__ == "__main__":
     folder_path = 'encryptme'
 
     encryptor = Encryptor(private_key_path, public_key_path)
-    encryptor.encrypt_files_in_folder(folder_path)
-    # To decrypt, use: encryptor.decrypt_files_in_folder(folder_path)
-
+    #encryptor.encrypt_files_in_folder(folder_path)
+    encryptor.decrypt_files_in_folder(folder_path)
 
 
