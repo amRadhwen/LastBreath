@@ -89,16 +89,11 @@ class Encryptor:
                 decrypted_chunk = cipher.decrypt(chunk)
                 decrypted_data += decrypted_chunk
 
-        # Extract the original file name and extension from the encrypted file name
-        _, original_extension = os.path.splitext(input_file)
+        # Extract the original file name without the .xvxv extension
         filename, _ = os.path.splitext(input_file)
-        original_file_path = f"{filename[:-6]}{original_extension}"
 
-        with open(original_file_path, 'wb') as outfile:
+        with open(filename, 'wb') as outfile:
             outfile.write(decrypted_data)
-
-        # Remove the encrypted file after successful decryption
-        os.remove(input_file)
 
     def decrypt_files_in_folder(self, folder_path):
         private_key = RSA.import_key(open(self.private_key_path).read())
@@ -110,8 +105,9 @@ class Encryptor:
 
                     # Use a temporary file to store the decrypted content
                     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-                        self.decrypt_file(input_file_path, temp_file.name, private_key)
+                        self.decrypt_file(input_file_path, private_key)
 
                     # Replace the original file with the decrypted content
-                    shutil.move(temp_file.name, input_file_path)
+                    shutil.move(temp_file.name, os.path.join(root, f"{file_name[:-6]}"))
+                    os.remove(input_file_path)
                     print(f"Decrypted {file_name} successfully.")
