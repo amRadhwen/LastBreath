@@ -4,95 +4,102 @@ from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
 
 class Encryptor:
-    def __init__(self, public_key_path, private_key_path):
-        self.public_key_path = public_key_path
+    def __init__(self, private_key_path, public_key_path):
         self.private_key_path = private_key_path
-        self.public_key = self.load_public_key(public_key_path)
-        self.private_key = self.load_private_key(private_key_path)
-        self.symmetric_key = None
+        self.public_key_path = public_key_path
+        self.private_key = None
+        self.public_key = None
 
-    def generate_public_key(self, key_size=2048):
-        key = RSA.generate(key_size)
-        with open(self.public_key_path, 'wb') as f:
-            f.write(key.publickey().export_key())
-
-    def generate_private_key(self, key_size=2048):
-        key = RSA.generate(key_size)
-        with open(self.private_key_path, 'wb') as f:
-            f.write(key.export_key())
-
-    def load_public_key(self, public_key_path):
-        if os.path.exists(public_key_path):
-            with open(public_key_path, 'rb') as f:
-                return RSA.import_key(f.read())
+        # Check if keys already exist, and load them if they do
+        if os.path.exists(private_key_path) and os.path.exists(public_key_path):
+            self.private_key = RSA.import_key(open(private_key_path).read())
+            self.public_key = RSA.import_key(open(public_key_path).read())
         else:
-            print(f"Public key file not found at {public_key_path}. Generating a new one...")
-            self.generate_public_key()
-            return self.load_public_key(public_key_path)
+            # Generate new keys if they don't exist
+            self.generate_keys()
 
-    def load_private_key(self, private_key_path):
-        if os.path.exists(private_key_path):
-            with open(private_key_path, 'rb') as f:
-                return RSA.import_key(f.read())
-        else:
-            print(f"Private key file not found at {private_key_path}. Generating a new one...")
-            self.generate_private_key()
-            return self.load_private_key(private_key_path)
+    def generate_keys(self):
+        if not self.private_key or not self.public_key:
+            key = RSA.generate(2048)
+            self.private_key = key
+            self.public_key = key.publickey()
 
-    def generate_symmetric_key(self):
-        self.symmetric_key = get_random_bytes(32)
+            with open(self.private_key_path, "wb") as private_key_file:
+                private_key_file.write(self.private_key.export_key())
+            with open(self.public_key_path, "wb") as public_key_file:
+                public_key_file.write(self.public_key.export_key())
 
-    def encrypt_file(self, input_file):
-        with open(input_file, 'rb') as f:
-            data = f.read()
-        
-        cipher_rsa = PKCS1_OAEP.new(self.public_key)
-        self.generate_symmetric_key()
-        enc_symmetric_key = cipher_rsa.encrypt(self.symmetric_key)
-        cipher_aes = AES.new(self.symmetric_key, AES.MODE_EAX)
-        ciphertext, tag = cipher_aes.encrypt_and_digest(data)
+    def generate_aes_key(self):
+        return get_random_bytes(32)  # 256-bit AES key
 
-        # Change the file extension to .xvxv
-        output_file = os.path.splitext(input_file)[0] + '.xvxv'
+    def encrypt_file(self, input_file, output_file, session_key):
+        # Extract the original file name and extension
+        filename, file_extension = os.path.splitext(input_file)
+        encrypted_file = f"{filename}{file_extension}.xvxv"
 
-        with open(output_file, 'wb') as f:
-            for x in (enc_symmetric_key, cipher_aes.nonce, tag, ciphertext):
-                f.write(x)
+        # Generate a random initialization vector (IV) for AES
+        iv = get_random_bytes(16)
 
-    def decrypt_file(self, input_file):
-        with open(input_file, 'rb') as f:
-            enc_symmetric_key, nonce, tag, ciphertext = [f.read(x) for x in (self.public_key.size_in_bytes(), 16, 16, -1)]
-        
-        cipher_rsa = PKCS1_OAEP.new(self.private_key)
-        symmetric_key = cipher_rsa.decrypt(enc_symmetric_key)
-        cipher_aes = AES.new(symmetric_key, AES.MODE_EAX, nonce=nonce)
-        data = cipher_aes.decrypt_and_verify(ciphertext, tag)
+        # Create an AES cipher with the session key and IV
+        cipher = AES.new(session_key, AES.MODE_CFB, iv)
 
-        # Change the file extension to the original extension
-        input_filename, _ = os.path.splitext(input_file)
-        output_file = input_filename + '.original'
+        with open(input_file, 'rb') as infile, open(encrypted_file, 'wb') as outfile:
+            outfile.write(iv)  # Write the IV to the output file
+            while True:
+                chunk = infile.read(8192)
+                if len(chunk) == 0:
+                    break
+                encrypted_chunk = cipher.encrypt(chunk)
+                outfile.write(encrypted_chunk)
 
-        with open(output_file, 'wb') as f:
-            f.write(data)
+    def encrypt_files_in_folder(self, folder_path):
+        private_key = RSA.import_key(open(self.private_key_path).read())
+        public_key = RSA.import_key(open(self.public_key_path).read())
 
-    def encrypt_folder(self, input_folder):
-        for root, dirs, files in os.walk(input_folder):
-            for file in files:
-                input_file_path = os.path.join(root, file)
-                self.encrypt_file(input_file_path)
-                os.remove(input_file_path)  # Remove the original file
+        for root, _, files in os.walk(folder_path):
+            for file_name in files:
+                input_file_path = os.path.join(root, file_name)
 
-    def decrypt_folder(self, input_folder):
-        for root, dirs, files in os.walk(input_folder):
-            for file in files:
-                input_file_path = os.path.join(root, file)
-                self.decrypt_file(input_file_path)
-                os.remove(input_file_path)  # Remove the encrypted file
+                # Skip already encrypted files
+                if file_name.endswith(".xvxv"):
+                    print(f"Skipping {file_name}: Already encrypted.")
+                    continue
 
-# Example usage:
-public_key_path = 'public_key.pem'
-private_key_path = 'private_key.pem'
+                session_key = self.generate_aes_key()
+                encrypted_session_key = PKCS1_OAEP.new(public_key).encrypt(session_key)
 
-encryptor = Encryptor(public_key_path, private_key_path)
-encryptor.encrypt_folder('input_folder')
-encryptor.decrypt_folder('input_folder')
+                self.encrypt_file(input_file_path, input_file_path, session_key)
+
+                print(f"Encrypted {file_name} successfully.")
+
+    def decrypt_file(self, input_file, session_key):
+        with open(input_file, 'rb') as infile:
+            iv = infile.read(16)
+            cipher = AES.new(session_key, AES.MODE_CFB, iv)
+            decrypted_data = b""
+            while True:
+                chunk = infile.read(8192)
+                if not chunk:
+                    break
+                decrypted_chunk = cipher.decrypt(chunk)
+                decrypted_data += decrypted_chunk
+
+        # Extract the original file name and extension
+        filename, file_extension = os.path.splitext(input_file)
+        original_file_path = f"{filename}{file_extension}"
+
+        with open(original_file_path, 'wb') as outfile:
+            outfile.write(decrypted_data)
+
+    def decrypt_files_in_folder(self, folder_path):
+        private_key = RSA.import_key(open(self.private_key_path).read())
+
+        for root, _, files in os.walk(folder_path):
+            for file_name in files:
+                if file_name.endswith(".xvxv"):
+                    input_file_path = os.path.join(root, file_name)
+
+                    self.decrypt_file(input_file_path, private_key)
+
+                    os.remove(input_file_path)
+                    print(f"Decrypted {file_name} successfully.")
