@@ -1,5 +1,5 @@
 
-from Enctryptor import Encryptor
+from Encryptor import Encryptor
 import tkinter as tk
 from GuiApp import GuiApp
 
