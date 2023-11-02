@@ -1,12 +1,12 @@
 
 from Enctryptor import Encryptor
+import tkinter as tk
+from GuiApp import GuiApp
 
 if __name__ == "__main__":
-    input_folder = "encryptme"
-    encryptor = Encryptor()
-    encryptor.generate_key_pair()
-    #encryptor.encrypt_files_in_folder(input_folder)
-    encryptor.decrypt_files_in_folder(input_folder)
+    root = tk.Tk()
+    app = GuiApp(root)
+    root.mainloop()
 
 
 
